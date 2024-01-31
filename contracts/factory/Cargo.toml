@@ -1,6 +1,6 @@
 [package]
-name = "first-contract"
-description = "Contract description."
+name = "factory"
+description = "Factory contract for OTC markets"
 version = { workspace = true }
 edition = { workspace = true }
 authors =  { workspace = true }

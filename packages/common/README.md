@@ -1,3 +1,3 @@
 # Common
 
-This package should contains all types shared accross all the smart contracts in the workspace.
+This package contains all types shared accross all the smart contracts in the workspace.
