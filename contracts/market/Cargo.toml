@@ -1,0 +1,28 @@
+[package]
+name = "market"
+description = "Market contract for OTC markets"
+version = { workspace = true }
+edition = { workspace = true }
+authors =  { workspace = true }
+license-file = { workspace = true }
+keywords = { workspace = true }
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+backtraces = ["cosmwasm-std/backtraces"]
+library = []
+
+[dependencies]
+cosmwasm-std = { workspace = true }
+cosmwasm-schema = { workspace = true }
+cw-storage-plus = { workspace = true }
+cw-ownable = { workspace = true }
+cw2 = {workspace = true }
+thiserror = { workspace = true }
+astroport = "3.6.1"
+common      = { path = "../../packages/common" }
+
+[dev-dependencies]
+cw-multi-test = "0.16"
