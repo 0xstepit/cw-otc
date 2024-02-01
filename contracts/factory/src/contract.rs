@@ -5,15 +5,15 @@ use cosmwasm_std::{
 
 
 use crate::{
-    erorr::ContractError,
+    error::ContractError,
     msg::{ExecuteMsg, InstantiateMsg, QueryMsg},
     state::CONFIG,
 };
 
 use common::factory::Config;
 
-pub const CONTRACT_NAME: &str = "crates.io/cw-otc";
-pub const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
+const CONTRACT_NAME: &str = "crates.io/cw-otc-factory";
+const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[entry_point]
 pub fn instantiate(

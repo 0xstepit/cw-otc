@@ -1,7 +1,7 @@
 use common::factory::Config;
 use cosmwasm_schema::{cw_serde, QueryResponses};
 
-/// This struct contains required variables to instantiate a new contract.
+/// This struct contains required variables to instantiate a new factory.
 #[cw_serde]
 pub struct InstantiateMsg {
     /// Contract owner address.
