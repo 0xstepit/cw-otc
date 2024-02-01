@@ -1,6 +1,6 @@
 use common::{factory::Config, market::Deal};
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::Coin;
+use cosmwasm_std::{Coin, Decimal};
 
 /// This struct contains required variables to instantiate a new market.
 #[cw_serde]
@@ -10,7 +10,7 @@ pub struct InstantiateMsg {
     // Second coin exchanged in this market.
     pub second_coin: String,
     // Fee deducted from each exchange in bps.
-    pub fee: u16,
+    pub fee: Decimal,
 }
 
 /// This enum describes available contract's execution messages.
@@ -21,7 +21,7 @@ pub enum ExecuteMsg {
         // Coin that the user wants to receive.
         coin_out: Coin,
         counterparty: Option<String>,
-        // Duration of the deal.
+        // Duration in blocks for the deal.
         timeout: u64,
     },
     AcceptDeal {

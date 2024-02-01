@@ -1,5 +1,5 @@
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{Addr, Coin};
+use cosmwasm_std::{Addr, Coin, DecCoin, Decimal};
 
 /// This struct contains configuration parameters for the market.
 #[cw_serde]
@@ -10,18 +10,18 @@ pub struct Config {
     pub first_coin: String, 
     // Second coin exchanged in this market.
     pub second_coin: String,
-    // Fee deducted from each exchange in bps.
-    pub fee: u16,
+    // Fee deducted from each exchange in percentage.
+    pub fee: Decimal,
 }
 
 #[cw_serde]
 pub struct Deal {
     // Coin that the user wants to swap.
-    coin_in: Coin,
+    pub coin_in: Coin,
     // Coin that the user wants to receive.
-    coin_out: Coin,
+    pub coin_out: Coin,
     // Only address that can accept the deal.
-    counterparty: Option<Addr>,
-    // Time after which the deal expire.
-    timeout: u64,
+    pub counterparty: Option<Addr>,
+    // Number of block after which the deal expire.
+    pub timeout: u64,
 }

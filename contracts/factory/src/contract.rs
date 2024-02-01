@@ -25,8 +25,7 @@ pub fn instantiate(
     cw2::set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
 
     let owner = deps.api.addr_validate(&msg.owner)?;
-    let fee_collector = msg
-        .fee_collector
+    let fee_collector = msg.fee_collector
         .as_ref()
         .map(|addr| deps.api.addr_validate(addr))
         .transpose()?;
@@ -137,7 +136,7 @@ mod tests {
     const OWNER: &str = "0xstepit000";
 
     #[test]
-    fn instatiate_with_fee_collector() {
+    fn instatiate_with_fee_collector_works() {
         let mut deps = mock_dependencies();
         let env = mock_env();
         let info = mock_info("stepit", &[]);
@@ -162,7 +161,7 @@ mod tests {
     }
 
     #[test]
-    fn instatiate_without_fee_collector() {
+    fn instatiate_without_fee_collector_works() {
         let mut deps = mock_dependencies();
         let env = mock_env();
         let info = mock_info("stepit", &[]);
