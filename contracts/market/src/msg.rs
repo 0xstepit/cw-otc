@@ -1,6 +1,6 @@
 use common::{factory::Config, market::Deal};
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::{Coin, Decimal};
+use cosmwasm_std::{Addr, Coin, Decimal};
 
 /// This struct contains required variables to instantiate a new market.
 #[cw_serde]
@@ -33,14 +33,27 @@ pub enum ExecuteMsg {
     Withdraw {},
 }
 
+#[cw_serde]
+pub struct DealsByCreatorResponse {
+    pub deals: Vec<(u64, Deal)>,
+}
+
+#[cw_serde]
+pub struct AllDealsResponse {
+    pub deals: Vec<((Addr, u64), Deal)>,
+}
+
 /// This enum describes available contract's query messages.
 #[cw_serde]
 #[derive(QueryResponses)]
 pub enum QueryMsg {
     /// Retrieve the market configuration.
     #[returns(Config)]
-    QueryConfig {},
-    #[returns(Vec<Deal>)]
+    Config {},
+    #[returns(DealsByCreatorResponse)]
+    /// Retrieve all deals from a creator.
+    DealsByCreator{ creator: String },
     /// Retrieve all available deals.
-    QueryAllDeals{},
+    #[returns(AllDealsResponse)]
+    AllDeals{  },
 }

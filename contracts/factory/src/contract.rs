@@ -59,8 +59,8 @@ pub fn execute(
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     use QueryMsg::*;
     match msg {
-        QueryConfig {} => to_json_binary(&query::get_config(deps)?),
-        QueryMarkets {} => to_json_binary(&query::get_markets(deps)?),
+        Config {} => to_json_binary(&query::get_config(deps)?),
+        Markets {} => to_json_binary(&query::get_markets(deps)?),
     }
 }
 

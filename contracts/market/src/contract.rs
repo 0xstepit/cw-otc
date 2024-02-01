@@ -72,11 +72,12 @@ pub fn execute(
 }
 
 #[entry_point]
-pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
+pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     use QueryMsg::*;
     match msg {
-        QueryConfig {} => to_json_binary(&query::get_config(deps)?),
-        QueryAllDeals {} => to_json_binary(&query::get_markets(deps)?),
+        Config {} => to_json_binary(&query::get_config(deps)?),
+        DealsByCreator { creator } => to_json_binary(&query::get_deals_by_creator(deps, env, creator)?),
+        AllDeals { } => to_json_binary(&query::get_all_deals(deps, env)?),
     }
 }
 
@@ -113,7 +114,8 @@ pub mod execute {
             coin_in: info.funds[0].clone(),
             coin_out,
             counterparty,
-            timeout: env.block.height.add(timeout)
+            timeout: env.block.height.add(timeout),
+            matched: false
         };
 
         let deal_id = next_id(deps.storage)?;
@@ -153,14 +155,52 @@ pub mod execute {
 }
 
 pub mod query {
+    use common::market::Deal;
+    use cosmwasm_std::{Addr, Order};
+
+    use crate::{msg::{AllDealsResponse, DealsByCreatorResponse}, state::DEALS};
+
     use super::*;
 
     pub fn get_config(deps: Deps) -> StdResult<Config> {
         CONFIG.load(deps.storage)
     }
 
-    pub fn get_markets(_deps: Deps) -> StdResult<()> {
-        unimplemented!()
+    // Return the active deal associated with a creator.
+    pub fn get_deals_by_creator(deps: Deps, env: Env, creator: String) -> StdResult<DealsByCreatorResponse> {
+        let creator = Addr::unchecked(creator);
+        let deals = DEALS
+            .prefix(&creator)
+            .range(deps.storage, None, None, Order::Ascending)
+            .filter_map(|item| {
+                item.ok().and_then(|(id, deal)| {
+                    if deal.timeout >= env.block.height {
+                        Some(Ok((id, deal)))
+                    } else {
+                        None
+                    }
+                })
+            })
+            .collect::<StdResult<Vec<(u64, Deal)>>>()?;
+
+        Ok(DealsByCreatorResponse{ deals })
+    }
+
+    // Return all active deals.
+    pub fn get_all_deals(deps: Deps, env: Env) -> StdResult<AllDealsResponse> {
+        let deals = DEALS
+            .range(deps.storage, None, None, Order::Ascending)
+            .filter_map(|item| {
+                item.ok().and_then(|(id, deal)| {
+                    if deal.timeout >= env.block.height {
+                        Some(Ok((id, deal)))
+                    } else {
+                        None
+                    }
+                })
+            })
+            .collect::<StdResult<Vec<((Addr, u64), Deal)>>>()?;
+        Ok(AllDealsResponse{ deals })
     }
 }
 

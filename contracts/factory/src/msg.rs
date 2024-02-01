@@ -27,8 +27,8 @@ pub enum ExecuteMsg {
 pub enum QueryMsg {
     /// Retrieve the contract allowed token.
     #[returns(Config)]
-    QueryConfig {},
+    Config {},
     #[returns(String)]
     /// Retrieve all markets.
-    QueryMarkets {},
+    Markets {},
 }

@@ -22,6 +22,8 @@ pub struct Deal {
     pub coin_out: Coin,
     // Only address that can accept the deal.
     pub counterparty: Option<Addr>,
-    // Number of block after which the deal expire.
+    // Block after which the deal expire.
     pub timeout: u64,
+    // Already matched by a counterparty
+    pub matched: bool
 }
