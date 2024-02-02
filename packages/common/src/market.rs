@@ -36,7 +36,7 @@ pub struct Deal {
     pub counterparty: Option<Addr>,
     /// Block after which the deal expire.
     pub timeout: u64,
-    /// Status of the deal. 
+    /// Status of the deal.
     pub status: DealStatus,
 }
 
