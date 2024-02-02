@@ -8,10 +8,10 @@ to exchange values without a middleman and in a trust-minimized way.
 The workspace is composed by two contracts:
 
 - **Factory**: the factory has the purposes of orchestrating multiple markets. It keeps track of the
- available markets and to avoid creation of duplicates.
+ available markets to avoid creation of duplicates.
 
 - **Market**: this is the main contract that implements the logic for otc exchange for a given pair.
-Every market has the possibility to deifine a fee that is deducted from both the partiesduring an
+Every market has the possibility to define a fee that is deducted from both the parties during an
 exchange.
 
 Below the draft of the MVP that highlights the APIs of the contracts and their interactions:
@@ -52,12 +52,12 @@ pub struct Deal {
 
 When a user decide to create a deal, it must specify the denom and amount of the coin they wants in exchange,
 a timeout for the deal, and optionally a counterparty. By specifying a counterparty the contract allows
-two users to have an agreement before exchange tokens. Howver, also an open deal is permitted and the
+two users to have an agreement before using the exchange to enforce their agreement. Howver, also an open deal is permitted and the
 first user that accept the deal becomes the counterparty.
 
-A deal creator can witdraw their deal is no one accepted it or, both parties can withdraw the counterparty
-tokens after a deal is concluded. Below you can see the possible combination of withdraw depending
-on the states of the deal. To be notice that fee are deducted only when a deal is accepted.
+A deal creator can witdraw their deal if no one accepted it or, both parties can withdraw the counterparty
+tokens after a deal is concluded. Below you can see the possible combinations of withdraw depending
+on the states of the deal. It must be notice that fee are deducted only when a deal is accepted.
 
 ![image](./assets/withdraw-combinations.png)
 
