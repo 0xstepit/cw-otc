@@ -48,12 +48,14 @@
             "type": "object",
             "properties": {
               "new_fee_collector": {
+                "description": "New fee collector address.",
                 "type": [
                   "string",
                   "null"
                 ]
               },
               "new_owner": {
+                "description": "New contract owner.",
                 "type": [
                   "string",
                   "null"
@@ -66,6 +68,7 @@
         "additionalProperties": false
       },
       {
+        "description": "Allows to instantiate a new market contract. The order of the coin is not relevant.",
         "type": "object",
         "required": [
           "create_market"
@@ -80,12 +83,19 @@
             ],
             "properties": {
               "fee": {
-                "$ref": "#/definitions/Decimal"
+                "description": "Fee deducted from each clsoed deal.",
+                "allOf": [
+                  {
+                    "$ref": "#/definitions/Decimal"
+                  }
+                ]
               },
               "first_coin": {
+                "description": "First coin exchanged in the market.",
                 "type": "string"
               },
               "second_coin": {
+                "description": "Second coins exchanged in the market.",
                 "type": "string"
               }
             },
@@ -175,6 +185,7 @@
       ],
       "properties": {
         "markets": {
+          "description": "List all available markets.",
           "type": "array",
           "items": {
             "type": "array",
@@ -214,6 +225,7 @@
       ],
       "properties": {
         "fee_collector": {
+          "description": "Optional address used to collect markets fees.",
           "anyOf": [
             {
               "$ref": "#/definitions/Addr"
@@ -224,12 +236,18 @@
           ]
         },
         "market_code_id": {
+          "description": "Code ID of the market contract.",
           "type": "integer",
           "format": "uint64",
           "minimum": 0.0
         },
         "owner": {
-          "$ref": "#/definitions/Addr"
+          "description": "Contract owner",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Addr"
+            }
+          ]
         }
       },
       "additionalProperties": false,
@@ -249,6 +267,7 @@
       ],
       "properties": {
         "address": {
+          "description": "Address of the marekt if exists or empty.",
           "type": "string"
         }
       },

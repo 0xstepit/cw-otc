@@ -15,5 +15,5 @@ cw-storage-plus = "1.2"
 cw2 = "1.1"
 cw-ownable = "0.5"
 thiserror = "1"
-market = { path = "./contracts/market" }
+
 

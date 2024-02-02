@@ -22,7 +22,7 @@ cw-ownable = { workspace = true }
 cw2 = {workspace = true }
 thiserror = { workspace = true }
 cw-utils = "1.0.1"
-market = { workspace = true, features = ["library"] }
+market = { path = "../../contracts/market" }
 common      = { path = "../../packages/common" }
 
 [dev-dependencies]

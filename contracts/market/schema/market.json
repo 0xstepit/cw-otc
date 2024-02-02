@@ -14,12 +14,19 @@
     ],
     "properties": {
       "fee": {
-        "$ref": "#/definitions/Decimal"
+        "description": "Fee deducted from each exchange in bps.",
+        "allOf": [
+          {
+            "$ref": "#/definitions/Decimal"
+          }
+        ]
       },
       "first_coin": {
+        "description": "First coin exchanged in this market.",
         "type": "string"
       },
       "second_coin": {
+        "description": "Second coin exchanged in this market.",
         "type": "string"
       }
     },
@@ -51,15 +58,22 @@
             ],
             "properties": {
               "coin_out": {
-                "$ref": "#/definitions/Coin"
+                "description": "Coin that the user wants to receive.",
+                "allOf": [
+                  {
+                    "$ref": "#/definitions/Coin"
+                  }
+                ]
               },
               "counterparty": {
+                "description": "If specified, is the only counterparty accepted in the deal.",
                 "type": [
                   "string",
                   "null"
                 ]
               },
               "timeout": {
+                "description": "Duration in blocks for the deal.",
                 "type": "integer",
                 "format": "uint64",
                 "minimum": 0.0
@@ -71,6 +85,7 @@
         "additionalProperties": false
       },
       {
+        "description": "Allows to accept a deal.",
         "type": "object",
         "required": [
           "accept_deal"
@@ -84,9 +99,11 @@
             ],
             "properties": {
               "creator": {
+                "description": "Address of the deal creator.",
                 "type": "string"
               },
               "deal_id": {
+                "description": "Coin that the user wants to exchange for.",
                 "type": "integer",
                 "format": "uint64",
                 "minimum": 0.0
@@ -98,6 +115,7 @@
         "additionalProperties": false
       },
       {
+        "description": "Allows to withdraw tokens associated with a deal.",
         "type": "object",
         "required": [
           "withdraw"
@@ -111,9 +129,11 @@
             ],
             "properties": {
               "creator": {
+                "description": "Address of the deal creator.",
                 "type": "string"
               },
               "deal_id": {
+                "description": "Coin that the user wants to exchange for.",
                 "type": "integer",
                 "format": "uint64",
                 "minimum": 0.0
@@ -266,6 +286,7 @@
           }
         },
         "Deal": {
+          "description": "Contains all information of a Deal.",
           "type": "object",
           "required": [
             "coin_in",
@@ -275,12 +296,23 @@
           ],
           "properties": {
             "coin_in": {
-              "$ref": "#/definitions/Coin"
+              "description": "Coin that the user wants to swap.",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/Coin"
+                }
+              ]
             },
             "coin_out": {
-              "$ref": "#/definitions/Coin"
+              "description": "Coin that the user wants to receive.",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/Coin"
+                }
+              ]
             },
             "counterparty": {
+              "description": "Only address that can accept the deal.",
               "anyOf": [
                 {
                   "$ref": "#/definitions/Addr"
@@ -291,9 +323,15 @@
               ]
             },
             "status": {
-              "$ref": "#/definitions/DealStatus"
+              "description": "Already matched by a counterparty.",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/DealStatus"
+                }
+              ]
             },
             "timeout": {
+              "description": "Block after which the deal expire.",
               "type": "integer",
               "format": "uint64",
               "minimum": 0.0
@@ -302,6 +340,7 @@
           "additionalProperties": false
         },
         "DealStatus": {
+          "description": "Describes the possible status of a deal.",
           "oneOf": [
             {
               "type": "string",
@@ -328,12 +367,36 @@
           "type": "string"
         },
         "WithdrawStatus": {
-          "type": "string",
-          "enum": [
-            "no_withdraw",
-            "creator_withdrawed",
-            "counterparty_withdrawed",
-            "completed"
+          "description": "Describes the possible status of a matched deal.",
+          "oneOf": [
+            {
+              "description": "No one performed a withdraw.",
+              "type": "string",
+              "enum": [
+                "no_withdraw"
+              ]
+            },
+            {
+              "description": "Only the creator performed a withdraw.",
+              "type": "string",
+              "enum": [
+                "creator_withdrawed"
+              ]
+            },
+            {
+              "description": "Only the counterparty performed the withdraw.",
+              "type": "string",
+              "enum": [
+                "counterparty_withdrawed"
+              ]
+            },
+            {
+              "description": "Closed deal.",
+              "type": "string",
+              "enum": [
+                "completed"
+              ]
+            }
           ]
         }
       }
@@ -349,6 +412,7 @@
       ],
       "properties": {
         "fee_collector": {
+          "description": "Optional address used to collect markets fees.",
           "anyOf": [
             {
               "$ref": "#/definitions/Addr"
@@ -359,12 +423,18 @@
           ]
         },
         "market_code_id": {
+          "description": "Code ID of the market contract.",
           "type": "integer",
           "format": "uint64",
           "minimum": 0.0
         },
         "owner": {
-          "$ref": "#/definitions/Addr"
+          "description": "Contract owner",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Addr"
+            }
+          ]
         }
       },
       "additionalProperties": false,
@@ -424,6 +494,7 @@
           }
         },
         "Deal": {
+          "description": "Contains all information of a Deal.",
           "type": "object",
           "required": [
             "coin_in",
@@ -433,12 +504,23 @@
           ],
           "properties": {
             "coin_in": {
-              "$ref": "#/definitions/Coin"
+              "description": "Coin that the user wants to swap.",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/Coin"
+                }
+              ]
             },
             "coin_out": {
-              "$ref": "#/definitions/Coin"
+              "description": "Coin that the user wants to receive.",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/Coin"
+                }
+              ]
             },
             "counterparty": {
+              "description": "Only address that can accept the deal.",
               "anyOf": [
                 {
                   "$ref": "#/definitions/Addr"
@@ -449,9 +531,15 @@
               ]
             },
             "status": {
-              "$ref": "#/definitions/DealStatus"
+              "description": "Already matched by a counterparty.",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/DealStatus"
+                }
+              ]
             },
             "timeout": {
+              "description": "Block after which the deal expire.",
               "type": "integer",
               "format": "uint64",
               "minimum": 0.0
@@ -460,6 +548,7 @@
           "additionalProperties": false
         },
         "DealStatus": {
+          "description": "Describes the possible status of a deal.",
           "oneOf": [
             {
               "type": "string",
@@ -486,12 +575,36 @@
           "type": "string"
         },
         "WithdrawStatus": {
-          "type": "string",
-          "enum": [
-            "no_withdraw",
-            "creator_withdrawed",
-            "counterparty_withdrawed",
-            "completed"
+          "description": "Describes the possible status of a matched deal.",
+          "oneOf": [
+            {
+              "description": "No one performed a withdraw.",
+              "type": "string",
+              "enum": [
+                "no_withdraw"
+              ]
+            },
+            {
+              "description": "Only the creator performed a withdraw.",
+              "type": "string",
+              "enum": [
+                "creator_withdrawed"
+              ]
+            },
+            {
+              "description": "Only the counterparty performed the withdraw.",
+              "type": "string",
+              "enum": [
+                "counterparty_withdrawed"
+              ]
+            },
+            {
+              "description": "Closed deal.",
+              "type": "string",
+              "enum": [
+                "completed"
+              ]
+            }
           ]
         }
       }
