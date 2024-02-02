@@ -1,8 +1,7 @@
 use cosmwasm_std::{
-    entry_point, to_json_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult,
-    ensure,
+    ensure, entry_point, to_json_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response,
+    StdResult,
 };
-
 
 use crate::{
     error::ContractError,
@@ -25,14 +24,18 @@ pub fn instantiate(
     cw2::set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
 
     let owner = deps.api.addr_validate(&msg.owner)?;
-    let fee_collector = msg.fee_collector
+    let fee_collector = msg
+        .fee_collector
         .as_ref()
         .map(|addr| deps.api.addr_validate(addr))
         .transpose()?;
 
     CONFIG.save(
         deps.storage,
-        &Config {owner, fee_collector},
+        &Config {
+            owner,
+            fee_collector,
+        },
     )?;
 
     Ok(Response::new())
@@ -49,7 +52,7 @@ pub fn execute(
     match msg {
         UpdateConfig {
             new_owner,
-            new_fee_collector
+            new_fee_collector,
         } => execute::update_config(deps, env, &info.sender, new_owner, new_fee_collector),
         CreateMarket {} => execute::create_market(deps, &info.sender),
     }
@@ -77,10 +80,7 @@ pub mod execute {
         new_fee_collector: Option<String>,
     ) -> Result<Response, ContractError> {
         let mut config = CONFIG.load(deps.storage)?;
-        ensure!(
-            config.owner == sender,
-            ContractError::Unauthorized
-        );
+        ensure!(config.owner == sender, ContractError::Unauthorized);
 
         let mut attributes = vec![];
 
@@ -98,8 +98,7 @@ pub mod execute {
         CONFIG.save(deps.storage, &config)?;
         Ok(Response::new()
             .add_attribute("action", "update_config")
-            .add_attributes(attributes)
-        )
+            .add_attributes(attributes))
     }
 
     pub fn create_market(_deps: DepsMut, _sender: &Addr) -> Result<Response, ContractError> {
@@ -125,7 +124,8 @@ pub mod query {
 #[cfg(test)]
 mod tests {
     use cosmwasm_std::{
-        testing::{mock_dependencies, mock_env, mock_info}, Addr, StdError
+        testing::{mock_dependencies, mock_env, mock_info},
+        Addr, StdError,
     };
 
     use crate::msg::InstantiateMsg;
@@ -157,7 +157,11 @@ mod tests {
 
         let owner_addr = Addr::unchecked(OWNER);
         assert_eq!(owner_addr, owner, "expect proper owner to be set");
-        assert_eq!(Some(owner_addr), fee_collector, "expect proper fee_collector to be set");
+        assert_eq!(
+            Some(owner_addr),
+            fee_collector,
+            "expect proper fee_collector to be set"
+        );
     }
 
     #[test]
@@ -191,10 +195,10 @@ mod tests {
         let env = mock_env();
 
         let initial_owner = Addr::unchecked(OWNER);
-        let initial_fee_collector = None; 
-        let config = Config{
+        let initial_fee_collector = None;
+        let config = Config {
             owner: initial_owner.clone(),
-            fee_collector: initial_fee_collector, 
+            fee_collector: initial_fee_collector,
         };
 
         CONFIG.save(&mut deps.storage, &config).unwrap();
@@ -206,13 +210,18 @@ mod tests {
             &Addr::unchecked(OWNER),
             Some(OWNER.to_owned()),
             Some(OWNER.to_owned()),
-        ).unwrap();
+        )
+        .unwrap();
 
         let owner = CONFIG.load(deps.as_ref().storage).unwrap().owner;
         let fee_collector = CONFIG.load(deps.as_ref().storage).unwrap().fee_collector;
 
         assert_eq!(initial_owner, owner, "expect same owner");
-        assert_eq!(Some(initial_owner.clone()), fee_collector, "expect fee_collector to be changed");
+        assert_eq!(
+            Some(initial_owner.clone()),
+            fee_collector,
+            "expect fee_collector to be changed"
+        );
 
         // Change owner
         execute::update_config(
@@ -221,13 +230,22 @@ mod tests {
             &Addr::unchecked(OWNER),
             Some("spiderman".to_owned()),
             Some(OWNER.to_owned()),
-        ).unwrap();
+        )
+        .unwrap();
 
         let owner = CONFIG.load(deps.as_ref().storage).unwrap().owner;
         let fee_collector = CONFIG.load(deps.as_ref().storage).unwrap().fee_collector;
 
-        assert_eq!(&Addr::unchecked("spiderman"), owner, "expect owner to be changed");
-        assert_eq!(Some(initial_owner), fee_collector, "expect same fee_collector");
+        assert_eq!(
+            &Addr::unchecked("spiderman"),
+            owner,
+            "expect owner to be changed"
+        );
+        assert_eq!(
+            Some(initial_owner),
+            fee_collector,
+            "expect same fee_collector"
+        );
     }
 
     #[test]
@@ -236,22 +254,23 @@ mod tests {
         let env = mock_env();
 
         let owner = Addr::unchecked(OWNER);
-        let fee_collector = None; 
-        let config = Config{
+        let fee_collector = None;
+        let config = Config {
             owner: owner.clone(),
-            fee_collector, 
+            fee_collector,
         };
 
         CONFIG.save(&mut deps.storage, &config).unwrap();
 
-        // Only owner can change 
+        // Only owner can change
         let err = execute::update_config(
             deps.as_mut(),
             env.clone(),
             &Addr::unchecked("spiderman"),
             Some("spiderman".to_owned()),
             Some(OWNER.to_owned()),
-        ).unwrap_err();
+        )
+        .unwrap_err();
 
         assert_eq!(
             err,
@@ -270,7 +289,8 @@ mod tests {
             &owner,
             Some("Spiderman".to_owned()),
             Some(OWNER.to_owned()),
-        ).unwrap_err();
+        )
+        .unwrap_err();
 
         assert_eq!(
             err,
@@ -289,7 +309,8 @@ mod tests {
             &owner,
             Some(OWNER.to_owned()),
             Some("Spiderman".to_owned()),
-        ).unwrap_err();
+        )
+        .unwrap_err();
 
         assert_eq!(
             err,
@@ -302,5 +323,4 @@ mod tests {
         let new_config = CONFIG.load(deps.as_ref().storage).unwrap();
         assert_eq!(config, new_config, "expected unchanged config");
     }
-
 }

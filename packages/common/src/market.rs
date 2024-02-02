@@ -7,7 +7,7 @@ pub struct Config {
     // Address of the instantiatooor of the contract. It should be the factory contract.
     pub owner: Addr,
     // First coin exchanged in this market.
-    pub first_coin: String, 
+    pub first_coin: String,
     // Second coin exchanged in this market.
     pub second_coin: String,
     // Fee deducted from each exchange in percentage.
@@ -24,6 +24,6 @@ pub struct Deal {
     pub counterparty: Option<Addr>,
     // Block after which the deal expire.
     pub timeout: u64,
-    // Already matched by a counterparty
-    pub matched: bool
+    // Already matched by a counterparty.
+    pub matched: bool,
 }

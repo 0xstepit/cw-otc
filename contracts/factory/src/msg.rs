@@ -16,7 +16,7 @@ pub enum ExecuteMsg {
     /// Allows to update the contract's configuration. Only owner can update.
     UpdateConfig {
         new_owner: Option<String>,
-        new_fee_collector: Option<String>
+        new_fee_collector: Option<String>,
     },
     CreateMarket {},
 }

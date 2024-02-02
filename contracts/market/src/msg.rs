@@ -6,7 +6,7 @@ use cosmwasm_std::{Addr, Coin, Decimal};
 #[cw_serde]
 pub struct InstantiateMsg {
     // First coin exchanged in this market.
-    pub first_coin: String, 
+    pub first_coin: String,
     // Second coin exchanged in this market.
     pub second_coin: String,
     // Fee deducted from each exchange in bps.
@@ -26,9 +26,9 @@ pub enum ExecuteMsg {
     },
     AcceptDeal {
         // Address of the deal creator.
-        //creator: String,
+        creator: String,
         // Coin that the user wants to exchange for.
-        //coin_in: Coin,
+        deal_id: u64,
     },
     Withdraw {},
 }
@@ -52,8 +52,8 @@ pub enum QueryMsg {
     Config {},
     #[returns(DealsByCreatorResponse)]
     /// Retrieve all deals from a creator.
-    DealsByCreator{ creator: String },
+    DealsByCreator { creator: String },
     /// Retrieve all available deals.
     #[returns(AllDealsResponse)]
-    AllDeals{  },
+    AllDeals {},
 }

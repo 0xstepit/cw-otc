@@ -1,4 +1,4 @@
-use cosmwasm_std::StdError;
+use cosmwasm_std::{Coin, StdError, Uint128};
 use thiserror::Error;
 
 use crate::contract::MAX_FEE;
@@ -15,11 +15,20 @@ pub enum ContractError {
     OverFeeMax {},
 
     #[error("First coin {first_coin} is equal to second coin {second_coin}")]
-    CoinError { first_coin: String, second_coin: String},
+    CoinError {
+        first_coin: String,
+        second_coin: String,
+    },
 
-    #[error("Only one coin is accepted for the deposit.")]
-    FundsError {  },
+    #[error("Only one coin is accepted for the deposit")]
+    FundsError {},
 
     #[error("Sent coin is not allowed")]
-    CoinNotAllowed {  },
+    CoinNotAllowed {},
+
+    #[error("Deal not available: expired or already matched")]
+    DealNotAvailable {},
+
+    #[error("Sent coins not allowed. Expected {amount}{denom}")]
+    WrongCoin { denom: String, amount: Uint128 },
 }

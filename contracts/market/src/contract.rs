@@ -1,5 +1,6 @@
 use cosmwasm_std::{
-    coin, ensure, entry_point, to_json_binary, Binary, Decimal, Deps, DepsMut, Env, MessageInfo, Response, StdResult
+    coin, ensure, entry_point, to_json_binary, Binary, Decimal, Deps, DepsMut, Env, MessageInfo,
+    Response, StdResult,
 };
 
 use crate::{
@@ -16,7 +17,7 @@ const CONTRACT_NAME: &str = "crates.io/cw-otc-market";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 // Maximum allowed fee is 5%.
-pub const MAX_FEE: Decimal = Decimal::percent(5); 
+pub const MAX_FEE: Decimal = Decimal::percent(5);
 
 #[entry_point]
 pub fn instantiate(
@@ -32,8 +33,8 @@ pub fn instantiate(
     if msg.first_coin == msg.second_coin {
         return Err(ContractError::CoinError {
             first_coin: msg.first_coin,
-            second_coin: msg.second_coin
-        })
+            second_coin: msg.second_coin,
+        });
     }
     if msg.fee > MAX_FEE {
         return Err(ContractError::OverFeeMax {});
@@ -45,7 +46,7 @@ pub fn instantiate(
             owner: info.sender,
             first_coin: msg.first_coin,
             second_coin: msg.second_coin,
-            fee: msg.fee
+            fee: msg.fee,
         },
     )?;
 
@@ -62,11 +63,11 @@ pub fn execute(
     use ExecuteMsg::*;
     match msg {
         CreateDeal {
-            coin_out, 
-            counterparty, 
+            coin_out,
+            counterparty,
             timeout,
         } => execute::create_deal(deps, env, info, coin_out, counterparty, timeout),
-        AcceptDeal {} => execute::accept_deal(deps, &info.sender),
+        AcceptDeal { creator, deal_id } => execute::accept_deal(deps, info, env, creator, deal_id),
         Withdraw {} => execute::withdraw(deps, &info.sender),
     }
 }
@@ -76,8 +77,10 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     use QueryMsg::*;
     match msg {
         Config {} => to_json_binary(&query::get_config(deps)?),
-        DealsByCreator { creator } => to_json_binary(&query::get_deals_by_creator(deps, env, creator)?),
-        AllDeals { } => to_json_binary(&query::get_all_deals(deps, env)?),
+        DealsByCreator { creator } => {
+            to_json_binary(&query::get_deals_by_creator(deps, env, creator)?)
+        }
+        AllDeals {} => to_json_binary(&query::get_all_deals(deps, env)?),
     }
 }
 
@@ -115,7 +118,7 @@ pub mod execute {
             coin_out,
             counterparty,
             timeout: env.block.height.add(timeout),
-            matched: false
+            matched: false,
         };
 
         let deal_id = next_id(deps.storage)?;
@@ -124,12 +127,54 @@ pub mod execute {
         Ok(Response::new()
             .add_attribute("action", "create_dial")
             .add_attribute("deal_id", deal_id.to_string())
-            .add_attribute("creator", info.sender)
-        )
+            .add_attribute("creator", info.sender))
     }
 
-    pub fn accept_deal(_deps: DepsMut, _sender: &Addr) -> Result<Response, ContractError> {
-        unimplemented!()
+    // To allow an address to accept a deal, we have to check the following conditions:
+    // 1. deal has not ben previously matched and is not expired.
+    // 2. sent funds are the same requested by the creator of the deal.
+    // 3. if the deal is associated with an address, sender must be that address
+    pub fn accept_deal(
+        deps: DepsMut,
+        info: MessageInfo,
+        env: Env,
+        creator: String,
+        deal_id: u64,
+    ) -> Result<Response, ContractError> {
+        check_only_one_coin(&info.funds)?;
+
+        let creator = Addr::unchecked(creator);
+        let mut deal = DEALS.load(deps.storage, (&creator, deal_id))?;
+
+        // Return error if the deal is expired or already matched.
+        if deal.matched || deal.timeout < env.block.height {
+            return Err(ContractError::DealNotAvailable {});
+        }
+
+        // Check if sent coins are the same of the selected deal.
+        if &deal.coin_out != &info.funds[0] {
+            return Err(ContractError::WrongCoin {
+                denom: deal.coin_out.denom.clone(),
+                amount: deal.coin_out.amount.clone(),
+            });
+        }
+
+        // Check if the deal is reserved and sender is not the lucky one.
+        if deal.counterparty.is_some() && Some(info.sender.clone()) != deal.counterparty {
+            return Err(ContractError::Unauthorized {});
+        }
+
+        // We set the counterparty as sender and deal matched.
+        // When counterparty is set and the deal matched, counterparty address
+        // and the creator are allowed to withdraw.
+        deal.counterparty = Some(info.sender);
+        deal.matched = true;
+
+        DEALS.save(deps.storage, (&creator, deal_id), &deal)?;
+
+        Ok(Response::new()
+            .add_attribute("action", "accept_deal")
+            .add_attribute("deal_counterparty", deal.counterparty.unwrap()))
     }
 
     pub fn withdraw(_deps: DepsMut, _sender: &Addr) -> Result<Response, ContractError> {
@@ -137,9 +182,9 @@ pub mod execute {
     }
 
     // Check that only one coin has been sent to the contract.
-    pub fn check_only_one_coin(funds: &Vec<Coin>) -> Result<(), ContractError>{
+    pub fn check_only_one_coin(funds: &Vec<Coin>) -> Result<(), ContractError> {
         if funds.len() != 1 {
-            return Err(ContractError::FundsError {})
+            return Err(ContractError::FundsError {});
         }
         Ok(())
     }
@@ -147,18 +192,20 @@ pub mod execute {
     // Check that the denom is an allowed coin for the market.
     pub fn check_allowed_coin(denom: &str, config: &Config) -> Result<(), ContractError> {
         if denom != config.first_coin && denom != config.second_coin {
-            return Err(ContractError::CoinNotAllowed {})
+            return Err(ContractError::CoinNotAllowed {});
         }
         Ok(())
     }
-
 }
 
 pub mod query {
     use common::market::Deal;
     use cosmwasm_std::{Addr, Order};
 
-    use crate::{msg::{AllDealsResponse, DealsByCreatorResponse}, state::DEALS};
+    use crate::{
+        msg::{AllDealsResponse, DealsByCreatorResponse},
+        state::DEALS,
+    };
 
     use super::*;
 
@@ -167,7 +214,11 @@ pub mod query {
     }
 
     // Return the active deal associated with a creator.
-    pub fn get_deals_by_creator(deps: Deps, env: Env, creator: String) -> StdResult<DealsByCreatorResponse> {
+    pub fn get_deals_by_creator(
+        deps: Deps,
+        env: Env,
+        creator: String,
+    ) -> StdResult<DealsByCreatorResponse> {
         let creator = Addr::unchecked(creator);
         let deals = DEALS
             .prefix(&creator)
@@ -183,7 +234,7 @@ pub mod query {
             })
             .collect::<StdResult<Vec<(u64, Deal)>>>()?;
 
-        Ok(DealsByCreatorResponse{ deals })
+        Ok(DealsByCreatorResponse { deals })
     }
 
     // Return all active deals.
@@ -200,7 +251,7 @@ pub mod query {
                 })
             })
             .collect::<StdResult<Vec<((Addr, u64), Deal)>>>()?;
-        Ok(AllDealsResponse{ deals })
+        Ok(AllDealsResponse { deals })
     }
 }
 
@@ -212,7 +263,8 @@ mod tests {
     use std::ops::Add;
 
     use cosmwasm_std::{
-        testing::{mock_dependencies, mock_env, mock_info}, Addr, StdError
+        testing::{mock_dependencies, mock_env, mock_info},
+        Addr, StdError,
     };
 
     use crate::msg::InstantiateMsg;
@@ -235,7 +287,7 @@ mod tests {
             InstantiateMsg {
                 first_coin: "astro".to_owned(),
                 second_coin: "usdc".to_owned(),
-                fee: Decimal::percent(1)
+                fee: Decimal::percent(1),
             },
         )
         .unwrap();
@@ -245,7 +297,7 @@ mod tests {
             owner: Addr::unchecked("stepit"),
             first_coin: "astro".to_owned(),
             second_coin: "usdc".to_owned(),
-            fee: Decimal::percent(1)
+            fee: Decimal::percent(1),
         };
         assert_eq!(expected_config, config, "expected different config")
     }
@@ -261,9 +313,10 @@ mod tests {
             env,
             info,
             InstantiateMsg {
-                first_coin: "ibc/EBD5A24C554198EBAF44979C5B4D2C2D312E6EBAB71962C92F735499C7575839".to_owned(),
+                first_coin: "ibc/EBD5A24C554198EBAF44979C5B4D2C2D312E6EBAB71962C92F735499C7575839"
+                    .to_owned(),
                 second_coin: "usdc".to_owned(),
-                fee: Decimal::percent(1)
+                fee: Decimal::percent(1),
             },
         )
         .unwrap();
@@ -271,9 +324,10 @@ mod tests {
         let config = CONFIG.load(deps.as_ref().storage).unwrap();
         let expected_config = Config {
             owner: Addr::unchecked("stepit"),
-            first_coin: "ibc/EBD5A24C554198EBAF44979C5B4D2C2D312E6EBAB71962C92F735499C7575839".to_owned(),
+            first_coin: "ibc/EBD5A24C554198EBAF44979C5B4D2C2D312E6EBAB71962C92F735499C7575839"
+                .to_owned(),
             second_coin: "usdc".to_owned(),
-            fee: Decimal::percent(1)
+            fee: Decimal::percent(1),
         };
         assert_eq!(expected_config, config, "expected different config")
     }
@@ -291,7 +345,7 @@ mod tests {
             InstantiateMsg {
                 first_coin: "factory/wasm1jdppe6fnj2q7hjsepty5crxtrryzhuqsjrj95y/astro".to_owned(),
                 second_coin: "usdc".to_owned(),
-                fee: Decimal::percent(1)
+                fee: Decimal::percent(1),
             },
         )
         .unwrap();
@@ -301,11 +355,10 @@ mod tests {
             owner: Addr::unchecked("stepit"),
             first_coin: "factory/wasm1jdppe6fnj2q7hjsepty5crxtrryzhuqsjrj95y/astro".to_owned(),
             second_coin: "usdc".to_owned(),
-            fee: Decimal::percent(1)
+            fee: Decimal::percent(1),
         };
         assert_eq!(expected_config, config, "expected different config")
     }
-
 
     #[test]
     fn instatiate_error_handling() {
@@ -320,12 +373,16 @@ mod tests {
             InstantiateMsg {
                 first_coin: "astro".to_owned(),
                 second_coin: "usdc".to_owned(),
-                fee: Decimal::percent(6)
+                fee: Decimal::percent(6),
             },
         )
         .unwrap_err();
 
-        assert_eq!(err, ContractError::OverFeeMax {  }, "expected different error for over max fee");
+        assert_eq!(
+            err,
+            ContractError::OverFeeMax {},
+            "expected different error for over max fee"
+        );
 
         let err = instantiate(
             deps.as_mut(),
@@ -334,14 +391,18 @@ mod tests {
             InstantiateMsg {
                 first_coin: "astro".to_owned(),
                 second_coin: "astro".to_owned(),
-                fee: Decimal::percent(1)
+                fee: Decimal::percent(1),
             },
         )
         .unwrap_err();
 
         assert_eq!(
-            err, 
-            ContractError::CoinError { first_coin: "astro".to_owned(), second_coin: "astro".to_owned() }, 
-            "expected different error for same coin");
+            err,
+            ContractError::CoinError {
+                first_coin: "astro".to_owned(),
+                second_coin: "astro".to_owned()
+            },
+            "expected different error for same coin"
+        );
     }
 }
