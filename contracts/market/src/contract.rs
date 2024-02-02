@@ -1,5 +1,6 @@
 use cosmwasm_std::{
-    coin, entry_point, to_json_binary, Binary, Decimal, Deps, DepsMut, Env, MessageInfo, Response, StdResult,
+    coin, entry_point, to_json_binary, Binary, Decimal, Deps, DepsMut, Env, MessageInfo, Response,
+    StdResult,
 };
 
 use crate::{
