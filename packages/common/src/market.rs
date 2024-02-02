@@ -14,6 +14,7 @@ pub struct Config {
     pub fee: Decimal,
 }
 
+// Contains all information of a Deal.
 #[cw_serde]
 pub struct Deal {
     // Coin that the user wants to swap.
@@ -25,5 +26,39 @@ pub struct Deal {
     // Block after which the deal expire.
     pub timeout: u64,
     // Already matched by a counterparty.
-    pub matched: bool,
+    pub status: DealStatus,
+}
+
+// Describes the possible status of a deal.
+#[cw_serde]
+pub enum DealStatus {
+    NotMatched,
+    Matched(WithdrawStatus),
+}
+
+// Describes the possible status of a matched deal.
+#[cw_serde]
+pub enum WithdrawStatus {
+    NoWithdraw,
+    CreatorWithdrawed,
+    CounterpartyWithdrawed,
+    Completed, 
+}
+
+impl DealStatus {
+    pub fn matched_no_withdraw() -> Self {
+        DealStatus::Matched(WithdrawStatus::NoWithdraw)
+    }
+
+    pub fn matched_creator_withdraw() -> Self {
+        DealStatus::Matched(WithdrawStatus::CreatorWithdrawed)
+    }
+
+    pub fn matched_counterparty_withdraw() -> Self {
+        DealStatus::Matched(WithdrawStatus::CounterpartyWithdrawed)
+    }
+
+    pub fn matched_and_completed() -> Self {
+        DealStatus::Matched(WithdrawStatus::Completed)
+    }
 }

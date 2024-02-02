@@ -68,7 +68,7 @@ pub fn execute(
             timeout,
         } => execute::create_deal(deps, env, info, coin_out, counterparty, timeout),
         AcceptDeal { creator, deal_id } => execute::accept_deal(deps, info, env, creator, deal_id),
-        Withdraw {} => execute::withdraw(deps, &info.sender),
+        Withdraw { creator, deal_id } => execute::withdraw(deps, info, env, creator, deal_id),
     }
 }
 
@@ -87,10 +87,10 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
 pub mod execute {
     use std::ops::Add;
 
-    use common::market::Deal;
-    use cosmwasm_std::{Addr, Attribute, Coin, Coins, StdError};
+    use common::market::{Deal, DealStatus, WithdrawStatus};
+    use cosmwasm_std::{coins, Addr, BankMsg, Coin, CosmosMsg, Uint128};
 
-    use crate::state::{next_id, COUNTER, DEALS};
+    use crate::state::{next_id, DEALS};
 
     use super::*;
 
@@ -118,7 +118,7 @@ pub mod execute {
             coin_out,
             counterparty,
             timeout: env.block.height.add(timeout),
-            matched: false,
+            status: DealStatus::NotMatched,
         };
 
         let deal_id = next_id(deps.storage)?;
@@ -144,10 +144,13 @@ pub mod execute {
         check_only_one_coin(&info.funds)?;
 
         let creator = Addr::unchecked(creator);
+        if info.sender == creator {
+            return Err(ContractError::SenderIsCreator {})
+        }
         let mut deal = DEALS.load(deps.storage, (&creator, deal_id))?;
 
         // Return error if the deal is expired or already matched.
-        if deal.matched || deal.timeout < env.block.height {
+        if deal.status != DealStatus::NotMatched || deal.timeout < env.block.height {
             return Err(ContractError::DealNotAvailable {});
         }
 
@@ -168,7 +171,7 @@ pub mod execute {
         // When counterparty is set and the deal matched, counterparty address
         // and the creator are allowed to withdraw.
         deal.counterparty = Some(info.sender);
-        deal.matched = true;
+        deal.status = DealStatus::matched_no_withdraw();
 
         DEALS.save(deps.storage, (&creator, deal_id), &deal)?;
 
@@ -177,8 +180,77 @@ pub mod execute {
             .add_attribute("deal_counterparty", deal.counterparty.unwrap()))
     }
 
-    pub fn withdraw(_deps: DepsMut, _sender: &Addr) -> Result<Response, ContractError> {
-        unimplemented!()
+    pub fn withdraw(
+        deps: DepsMut, 
+        info: MessageInfo, 
+        env: Env, 
+        creator: String, 
+        deal_id: u64
+    ) -> Result<Response, ContractError> {
+
+        let config = CONFIG.load(deps.storage)?;
+
+        let creator = Addr::unchecked(creator);
+
+        let mut deal = DEALS.load(deps.storage, (&creator, deal_id))?;
+
+        let expired = deal.timeout < env.block.height;
+        let is_creator = creator == info.sender;
+
+        // Separate the withdraw in two cases for readability
+    
+        // First consider the case of unmatched deal
+        let msgs: Vec<CosmosMsg> = match deal.status {
+            DealStatus::NotMatched if is_creator => {
+                deal.status = DealStatus::Matched(WithdrawStatus::Completed);
+                create_withdraw_msg_not_matched(
+                    info.sender,
+                    deal.coin_in.clone(),
+                )
+            },
+            DealStatus::Matched(WithdrawStatus::NoWithdraw) => {
+                let withdraw_coin = if is_creator {
+                    deal.status = DealStatus::Matched(WithdrawStatus::CounterpartyWithdrawed);
+                    deal.coin_out.clone()
+                } else {
+                    deal.status = DealStatus::Matched(WithdrawStatus::CounterpartyWithdrawed);
+                    deal.coin_in.clone()
+                };
+                create_withdraw_msg_matched(
+                    info.sender,
+                    withdraw_coin,
+                config,
+            )
+            },
+            DealStatus::Matched(WithdrawStatus::CreatorWithdrawed) if !is_creator => {
+                deal.status = DealStatus::Matched(WithdrawStatus::Completed);
+                create_withdraw_msg_matched(
+                    info.sender,
+                    deal.coin_in.clone(),
+                    config,
+                )
+            },
+            DealStatus::Matched(WithdrawStatus::CounterpartyWithdrawed) if is_creator => {
+                deal.status = DealStatus::Matched(WithdrawStatus::Completed);
+                create_withdraw_msg_matched(
+                    info.sender,
+                    deal.coin_in.clone(),
+                    config,
+                )
+            }
+            _ => vec![],
+        };
+
+        if msgs.is_empty() {
+            return Err(ContractError::Unauthorized {})
+        }
+
+        DEALS.save(deps.storage, (&creator, deal_id), &deal)?;
+
+        Ok(Response::new()
+            .add_attribute("action", "withdraw")
+            .add_messages(msgs)
+        )
     }
 
     // Check that only one coin has been sent to the contract.
@@ -195,6 +267,39 @@ pub mod execute {
             return Err(ContractError::CoinNotAllowed {});
         }
         Ok(())
+    }
+
+    // Create a bank transfer message to refund the entire amount.
+    pub fn create_withdraw_msg_not_matched(receiver: Addr, coin: Coin) -> Vec<CosmosMsg> {
+        let msg: CosmosMsg = BankMsg::Send {
+            to_address: receiver.to_string(),
+            amount: vec![coin],
+        }.into();
+        vec![msg]
+    }
+
+    // Create a bank transfer message to the receiver and a bank transfer message for th fee if any.
+    pub fn create_withdraw_msg_matched(receiver: Addr, withdraw_coin: Coin, config: Config) -> Vec<CosmosMsg> {
+        let mut msgs = vec![];
+
+        let fee_amount =  withdraw_coin.amount * config.fee;
+        let receiver_amount = withdraw_coin.amount - fee_amount;
+        msgs.push(
+            BankMsg::Send {
+                to_address: receiver.to_string(),
+                amount: vec![coin(receiver_amount.u128(), withdraw_coin.denom.clone())],
+            }.into()
+        );
+
+        if fee_amount != Uint128::zero() {
+            msgs.push(
+                BankMsg::Send {
+                    to_address: config.owner.to_string(),
+                    amount: vec![coin(fee_amount.u128(), withdraw_coin.denom)],
+                }.into()
+            ); 
+        }
+        msgs
     }
 }
 

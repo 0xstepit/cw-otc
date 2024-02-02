@@ -30,7 +30,12 @@ pub enum ExecuteMsg {
         // Coin that the user wants to exchange for.
         deal_id: u64,
     },
-    Withdraw {},
+    Withdraw {
+        // Address of the deal creator.
+        creator: String,
+        // Coin that the user wants to exchange for.
+        deal_id: u64,
+    },
 }
 
 #[cw_serde]

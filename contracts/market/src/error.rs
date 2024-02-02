@@ -31,4 +31,10 @@ pub enum ContractError {
 
     #[error("Sent coins not allowed. Expected {amount}{denom}")]
     WrongCoin { denom: String, amount: Uint128 },
+
+    #[error("The deal ")]
+    DealNotMatched {  },
+
+    #[error("Creator cannot accept the deal.")]
+    SenderIsCreator {  },
 }

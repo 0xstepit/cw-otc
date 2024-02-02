@@ -168,6 +168,7 @@ fn accept_deal_error_handling() {
 
     let owner = Addr::unchecked(OWNER);
     let stepit = Addr::unchecked("0xstepit".to_string());
+    let spiderman = Addr::unchecked("0xspider".to_string());
     let not_a_scammer = Addr::unchecked("0xtrustme".to_string());
 
     // Store and instantiate the market contract.
@@ -212,6 +213,11 @@ fn accept_deal_error_handling() {
     .unwrap();
     app.sudo(SudoMsg::Bank(BankSudo::Mint {
         to_address: stepit.to_string(),
+        amount: vec![coin.clone()],
+    }))
+    .unwrap();
+    app.sudo(SudoMsg::Bank(BankSudo::Mint {
+        to_address: spiderman.to_string(),
         amount: vec![coin],
     }))
     .unwrap();
@@ -299,7 +305,7 @@ fn accept_deal_error_handling() {
 
     let err = app
         .execute_contract(
-            not_a_scammer.clone(),
+            spiderman.clone(),
             market_addr.clone(),
             &accept_deal_msg,
             &[Coin::new(500, "usdc")],
@@ -310,6 +316,21 @@ fn accept_deal_error_handling() {
         err.downcast_ref::<ContractError>().unwrap(),
         &ContractError::Unauthorized {},
         "expected error because sender is not the requested counterparty"
+    );
+
+    let err = app
+    .execute_contract(
+        not_a_scammer.clone(),
+        market_addr.clone(),
+        &accept_deal_msg,
+        &[Coin::new(500, "usdc")],
+    )
+    .unwrap_err();
+
+    assert_eq!(
+        err.downcast_ref::<ContractError>().unwrap(),
+        &ContractError::SenderIsCreator {},
+        "expected error because creator cannot accept their deal"
     );
 
     // Now the deal is accepted correctly
