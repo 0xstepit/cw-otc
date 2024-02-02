@@ -106,6 +106,27 @@ just clippy && just fmt
 just schema
 ```
 
+## Considerations
+
+- A better way to handling the owner update should be implemented.
+
+- The withdraw part can be automatic without requiring users to withdraw when a deal is closed.
+
+- Another variant of the execute can be created to handle the cancellation of a deal from the creator.
+This will make the logic more clear. Now it is handled in withdraw.
+
+- Use time instead of blocks for deal expiration.
+
+- A logic to remove expired deal from the state should be implemented.
+
+- Implement a logic in the factory to close or stop a market.
+
+- Would be nice to allow IBC otc using a wasm middleware.
+
+- Error handling can be improved.
+
+- Would be nice to allows market with more than two coins.
+
 ## References
 
 This workspace has been created using the [cw-starter](https://github.com/0xstepit/cw-starter) template.
