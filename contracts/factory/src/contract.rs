@@ -68,7 +68,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
 }
 
 pub mod execute {
-    use cosmwasm_std::{Addr, Attribute, StdError};
+    use cosmwasm_std::{Addr, Attribute};
 
     use super::*;
 

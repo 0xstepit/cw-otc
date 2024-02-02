@@ -3,7 +3,7 @@ use cw_multi_test::{App, BankSudo, Contract, ContractWrapper, Executor, SudoMsg}
 
 use crate::{
     error::ContractError,
-    msg::{AllDealsResponse, DealsByCreatorResponse, ExecuteMsg, InstantiateMsg, QueryMsg},
+    msg::{ExecuteMsg, InstantiateMsg},
 };
 
 const OWNER: &str = "0xstepit000";
@@ -319,13 +319,13 @@ fn accept_deal_error_handling() {
     );
 
     let err = app
-    .execute_contract(
-        not_a_scammer.clone(),
-        market_addr.clone(),
-        &accept_deal_msg,
-        &[Coin::new(500, "usdc")],
-    )
-    .unwrap_err();
+        .execute_contract(
+            not_a_scammer.clone(),
+            market_addr.clone(),
+            &accept_deal_msg,
+            &[Coin::new(500, "usdc")],
+        )
+        .unwrap_err();
 
     assert_eq!(
         err.downcast_ref::<ContractError>().unwrap(),

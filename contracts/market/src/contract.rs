@@ -183,7 +183,7 @@ pub mod execute {
     pub fn withdraw(
         deps: DepsMut, 
         info: MessageInfo, 
-        env: Env, 
+        _env: Env, 
         creator: String, 
         deal_id: u64
     ) -> Result<Response, ContractError> {
@@ -194,8 +194,12 @@ pub mod execute {
 
         let mut deal = DEALS.load(deps.storage, (&creator, deal_id))?;
 
-        let expired = deal.timeout < env.block.height;
         let is_creator = creator == info.sender;
+        let is_counterparty = Some(info.sender.clone()) == deal.counterparty;
+
+        if !is_counterparty && !is_creator {
+            return Err(ContractError::Unauthorized)
+        }
 
         // Separate the withdraw in two cases for readability
     
@@ -210,7 +214,7 @@ pub mod execute {
             },
             DealStatus::Matched(WithdrawStatus::NoWithdraw) => {
                 let withdraw_coin = if is_creator {
-                    deal.status = DealStatus::Matched(WithdrawStatus::CounterpartyWithdrawed);
+                    deal.status = DealStatus::Matched(WithdrawStatus::CreatorWithdrawed);
                     deal.coin_out.clone()
                 } else {
                     deal.status = DealStatus::Matched(WithdrawStatus::CounterpartyWithdrawed);
@@ -234,7 +238,7 @@ pub mod execute {
                 deal.status = DealStatus::Matched(WithdrawStatus::Completed);
                 create_withdraw_msg_matched(
                     info.sender,
-                    deal.coin_in.clone(),
+                    deal.coin_out.clone(),
                     config,
                 )
             }
@@ -245,7 +249,11 @@ pub mod execute {
             return Err(ContractError::Unauthorized {})
         }
 
-        DEALS.save(deps.storage, (&creator, deal_id), &deal)?;
+        if deal.status == DealStatus::matched_and_completed() {
+            DEALS.remove(deps.storage, (&creator, deal_id))
+        } else {
+            DEALS.save(deps.storage, (&creator, deal_id), &deal)?;
+        }
 
         Ok(Response::new()
             .add_attribute("action", "withdraw")

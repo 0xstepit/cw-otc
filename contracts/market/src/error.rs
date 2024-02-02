@@ -1,4 +1,4 @@
-use cosmwasm_std::{Coin, StdError, Uint128};
+use cosmwasm_std::{StdError, Uint128};
 use thiserror::Error;
 
 use crate::contract::MAX_FEE;
@@ -33,8 +33,8 @@ pub enum ContractError {
     WrongCoin { denom: String, amount: Uint128 },
 
     #[error("The deal ")]
-    DealNotMatched {  },
+    DealNotMatched {},
 
     #[error("Creator cannot accept the deal.")]
-    SenderIsCreator {  },
+    SenderIsCreator {},
 }

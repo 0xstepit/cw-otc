@@ -1,5 +1,5 @@
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{Addr, Coin, DecCoin, Decimal};
+use cosmwasm_std::{Addr, Coin, Decimal};
 
 /// This struct contains configuration parameters for the market.
 #[cw_serde]
@@ -42,7 +42,7 @@ pub enum WithdrawStatus {
     NoWithdraw,
     CreatorWithdrawed,
     CounterpartyWithdrawed,
-    Completed, 
+    Completed,
 }
 
 impl DealStatus {
