@@ -5,9 +5,10 @@
   "instantiate": {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "title": "InstantiateMsg",
-    "description": "This struct contains required variables to instantiate a new contract.",
+    "description": "This struct contains required variables to instantiate a new factory.",
     "type": "object",
     "required": [
+      "market_code_id",
       "owner"
     ],
     "properties": {
@@ -17,6 +18,12 @@
           "string",
           "null"
         ]
+      },
+      "market_code_id": {
+        "description": "Code ID of the otc market contract.",
+        "type": "integer",
+        "format": "uint64",
+        "minimum": 0.0
       },
       "owner": {
         "description": "Contract owner address.",
@@ -31,7 +38,7 @@
     "description": "This enum describes available contract's execution messages.",
     "oneOf": [
       {
-        "description": "Allows to update the contract's `allowed_token`. Only owner can update.",
+        "description": "Allows to update the contract's configuration. Only owner can update.",
         "type": "object",
         "required": [
           "update_config"
@@ -39,6 +46,20 @@
         "properties": {
           "update_config": {
             "type": "object",
+            "properties": {
+              "new_fee_collector": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "new_owner": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
             "additionalProperties": false
           }
         },
@@ -52,12 +73,34 @@
         "properties": {
           "create_market": {
             "type": "object",
+            "required": [
+              "fee",
+              "first_coin",
+              "second_coin"
+            ],
+            "properties": {
+              "fee": {
+                "$ref": "#/definitions/Decimal"
+              },
+              "first_coin": {
+                "type": "string"
+              },
+              "second_coin": {
+                "type": "string"
+              }
+            },
             "additionalProperties": false
           }
         },
         "additionalProperties": false
       }
-    ]
+    ],
+    "definitions": {
+      "Decimal": {
+        "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0\n\nThe greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)",
+        "type": "string"
+      }
+    }
   },
   "query": {
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -68,10 +111,10 @@
         "description": "Retrieve the contract allowed token.",
         "type": "object",
         "required": [
-          "query_config"
+          "config"
         ],
         "properties": {
-          "query_config": {
+          "config": {
             "type": "object",
             "additionalProperties": false
           }
@@ -82,10 +125,36 @@
         "description": "Retrieve all markets.",
         "type": "object",
         "required": [
-          "query_markets"
+          "market"
         ],
         "properties": {
-          "query_markets": {
+          "market": {
+            "type": "object",
+            "required": [
+              "first_denom",
+              "second_denom"
+            ],
+            "properties": {
+              "first_denom": {
+                "type": "string"
+              },
+              "second_denom": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      {
+        "description": "Retrieve all markets.",
+        "type": "object",
+        "required": [
+          "all_markets"
+        ],
+        "properties": {
+          "all_markets": {
             "type": "object",
             "additionalProperties": false
           }
@@ -97,12 +166,50 @@
   "migrate": null,
   "sudo": null,
   "responses": {
-    "query_config": {
+    "all_markets": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AllMarketsResponse",
+      "type": "object",
+      "required": [
+        "markets"
+      ],
+      "properties": {
+        "markets": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": [
+              {
+                "type": "array",
+                "items": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ],
+                "maxItems": 2,
+                "minItems": 2
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "maxItems": 2,
+            "minItems": 2
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "config": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Config",
       "description": "This struct contains configuration parameters for the contract.",
       "type": "object",
       "required": [
+        "market_code_id",
         "owner"
       ],
       "properties": {
@@ -116,6 +223,11 @@
             }
           ]
         },
+        "market_code_id": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
         "owner": {
           "$ref": "#/definitions/Addr"
         }
@@ -128,10 +240,19 @@
         }
       }
     },
-    "query_markets": {
+    "market": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "String",
-      "type": "string"
+      "title": "MarketResponse",
+      "type": "object",
+      "required": [
+        "address"
+      ],
+      "properties": {
+        "address": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
     }
   }
 }

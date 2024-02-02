@@ -1,11 +1,20 @@
 # CW-OTC
 
-`cw-otc` is a smart contract that implements an over-the-counter market to securely allow two parties
+`cw-otc` is a smart contracts workspace that implements an over-the-counter market to securely allow two parties
 to exchange values without a middleman and in a trust-minimized way.
 
-## MVP
+## Contracts
 
-Below the first draft of the MVP is reported:
+The workspace is composed by two contracts:
+
+- **Factory**: the factory has the purposes of orchestrating multiple markets. It keeps track of the
+ available markets and to avoid creation of duplicates.
+
+- **Market**: this is the main contract that implements the logic for otc exchange for a given pair.
+Every market has the possibility to deifine a fee that is deducted from both the partiesduring an
+exchange.
+
+Below the draft of the MVP that highlights the APIs of the contracts and their interactions:
 
 ![image](./assets/mvp.png)
 
