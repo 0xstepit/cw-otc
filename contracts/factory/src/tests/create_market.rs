@@ -3,7 +3,7 @@ use cw_multi_test::{App, BankSudo, Contract, ContractWrapper, Executor, SudoMsg}
 
 use crate::{
     error::ContractError,
-    msg::{ExecuteMsg, InstantiateMsg, MarketsResponse, QueryMsg},
+    msg::{AllMarketsResponse, ExecuteMsg, InstantiateMsg, MarketResponse, QueryMsg},
 };
 
 use market::msg::QueryMsg as MarketQueryMsg;
@@ -83,12 +83,30 @@ fn create_market_works() {
     app.execute_contract(owner.clone(), factory_addr.clone(), &create_market_msg, &[])
         .unwrap();
 
-    let resp_markets: MarketsResponse = app
+    let resp_markets: AllMarketsResponse = app
         .wrap()
-        .query_wasm_smart(factory_addr.clone(), &QueryMsg::Markets {})
+        .query_wasm_smart(factory_addr.clone(), &QueryMsg::AllMarkets {})
         .unwrap();
 
     let ((_, _), market_addr) = resp_markets.markets[0].clone();
+
+    let resp_market: MarketResponse = app
+        .wrap()
+        .query_wasm_smart(
+            factory_addr.clone(),
+            &QueryMsg::Market {
+                first_denom: "astro".to_string(),
+                second_denom: "usdc".to_string(),
+            },
+        )
+        .unwrap();
+
+    let market_address_direct = resp_market.address;
+
+    assert_eq!(
+        market_addr, market_address_direct,
+        "expected address from two queries equal"
+    );
 
     let resp_deals: market::msg::AllDealsResponse = app
         .wrap()

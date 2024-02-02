@@ -72,7 +72,11 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     use QueryMsg::*;
     match msg {
         Config {} => to_json_binary(&query::get_config(deps)?),
-        Markets {} => to_json_binary(&query::get_markets(deps)?),
+        Market {
+            first_denom,
+            second_denom,
+        } => to_json_binary(&query::get_market(deps, first_denom, second_denom)?),
+        AllMarkets {} => to_json_binary(&query::get_all_markets(deps)?),
     }
 }
 
@@ -85,23 +89,6 @@ pub fn reply(deps: DepsMut, _env: Env, msg: Reply) -> Result<Response, ContractE
     match msg_id {
         INSTANTIATE_MARKET_REPLY_ID => reply::handle_instantiate_reply(deps, res),
         _ => Err(ContractError::UnknownReply {}),
-    }
-}
-
-pub mod reply {
-    use cw_utils::MsgInstantiateContractResponse;
-
-    use crate::state::TMP_MARKET_KEY;
-
-    use super::*;
-
-    pub fn handle_instantiate_reply(
-        deps: DepsMut,
-        res: MsgInstantiateContractResponse,
-    ) -> Result<Response, ContractError> {
-        let market_key = TMP_MARKET_KEY.load(deps.storage)?;
-        MARKETS.save(deps.storage, market_key, &res.contract_address)?;
-        Ok(Response::new())
     }
 }
 
@@ -196,7 +183,9 @@ pub mod execute {
 pub mod query {
     use cosmwasm_std::Order;
 
-    use crate::msg::MarketsResponse;
+    use crate::msg::{AllMarketsResponse, MarketResponse};
+
+    use self::execute::order_strings;
 
     use super::*;
 
@@ -204,13 +193,46 @@ pub mod query {
         CONFIG.load(deps.storage)
     }
 
-    pub fn get_markets(deps: Deps) -> StdResult<MarketsResponse> {
+    pub fn get_market(
+        deps: Deps,
+        first_denom: String,
+        second_denom: String,
+    ) -> StdResult<MarketResponse> {
+        let mut market = "".to_string();
+        let ordered_denoms = order_strings(first_denom, second_denom);
+        if MARKETS
+            .may_load(deps.storage, ordered_denoms.clone())?
+            .is_some()
+        {
+            market = MARKETS.load(deps.storage, ordered_denoms)?;
+        }
+        Ok(MarketResponse { address: market })
+    }
+
+    pub fn get_all_markets(deps: Deps) -> StdResult<AllMarketsResponse> {
         let all_markets = MARKETS
             .range(deps.storage, None, None, Order::Ascending)
             .collect::<StdResult<Vec<((String, String), String)>>>()?;
-        Ok(MarketsResponse {
+        Ok(AllMarketsResponse {
             markets: all_markets,
         })
+    }
+}
+
+pub mod reply {
+    use cw_utils::MsgInstantiateContractResponse;
+
+    use crate::state::TMP_MARKET_KEY;
+
+    use super::*;
+
+    pub fn handle_instantiate_reply(
+        deps: DepsMut,
+        res: MsgInstantiateContractResponse,
+    ) -> Result<Response, ContractError> {
+        let market_key = TMP_MARKET_KEY.load(deps.storage)?;
+        MARKETS.save(deps.storage, market_key, &res.contract_address)?;
+        Ok(Response::new())
     }
 }
 

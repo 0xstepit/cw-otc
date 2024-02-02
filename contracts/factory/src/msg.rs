@@ -35,12 +35,23 @@ pub enum QueryMsg {
     /// Retrieve the contract allowed token.
     #[returns(Config)]
     Config {},
-    #[returns(MarketsResponse)]
+    #[returns(MarketResponse)]
     /// Retrieve all markets.
-    Markets {},
+    Market {
+        first_denom: String,
+        second_denom: String,
+    },
+    #[returns(AllMarketsResponse)]
+    /// Retrieve all markets.
+    AllMarkets {},
 }
 
 #[cw_serde]
-pub struct MarketsResponse {
+pub struct MarketResponse {
+    pub address: String,
+}
+
+#[cw_serde]
+pub struct AllMarketsResponse {
     pub markets: Vec<((String, String), String)>,
 }
