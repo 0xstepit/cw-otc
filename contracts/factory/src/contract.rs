@@ -99,6 +99,7 @@ pub mod execute {
 
     use super::*;
 
+    /// Allows to update the factory configuration. Only the owner is authorized.
     pub fn update_config(
         deps: DepsMut,
         _env: Env,
@@ -128,6 +129,7 @@ pub mod execute {
             .add_attributes(attributes))
     }
 
+    /// Create a new instance of the market contract with the provided parameters.
     pub fn create_market(
         deps: DepsMut,
         sender: &Addr,
@@ -165,18 +167,11 @@ pub mod execute {
             reply_on: ReplyOn::Success,
         }];
 
+        // This store is used to keep track of the coins that will be used in the created market
+        // to easily handle the reply.
         TMP_MARKET_KEY.save(deps.storage, &ordered_coins)?;
 
         Ok(Response::new().add_submessages(sub_msg))
-    }
-
-    // Helper function used to order two coin denoms.
-    pub fn order_strings(string_one: String, string_two: String) -> (String, String) {
-        if string_one < string_two {
-            (string_one, string_two)
-        } else {
-            (string_two, string_one)
-        }
     }
 }
 
@@ -185,14 +180,14 @@ pub mod query {
 
     use crate::msg::{AllMarketsResponse, MarketResponse};
 
-    use self::execute::order_strings;
-
     use super::*;
 
+    /// Retieve the factory configuration.
     pub fn get_config(deps: Deps) -> StdResult<Config> {
         CONFIG.load(deps.storage)
     }
 
+    /// Retrieve the market associated to the two denoms if axists.
     pub fn get_market(
         deps: Deps,
         first_denom: String,
@@ -209,6 +204,7 @@ pub mod query {
         Ok(MarketResponse { address: market })
     }
 
+    /// Retrieve all available markets.
     pub fn get_all_markets(deps: Deps) -> StdResult<AllMarketsResponse> {
         let all_markets = MARKETS
             .range(deps.storage, None, None, Order::Ascending)
@@ -226,6 +222,8 @@ pub mod reply {
 
     use super::*;
 
+    /// Handle the replies to the contract. A single reply coming from market instantiation is
+    /// expected.
     pub fn handle_instantiate_reply(
         deps: DepsMut,
         res: MsgInstantiateContractResponse,
@@ -236,6 +234,14 @@ pub mod reply {
     }
 }
 
+/// Helper function used to order two coin denoms.
+pub fn order_strings(string_one: String, string_two: String) -> (String, String) {
+    if string_one < string_two {
+        (string_one, string_two)
+    } else {
+        (string_two, string_one)
+    }
+}
 // -------------------------------------------------------------------------------------------------
 // Unit tests
 // -------------------------------------------------------------------------------------------------

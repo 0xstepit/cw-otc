@@ -7,22 +7,25 @@ use cosmwasm_std::{Addr, Coin};
 pub enum ExecuteMsg {
     /// Allows to update the contract's configuration. Only owner can update.
     CreateDeal {
-        // Coin that the user wants to receive.
+        /// Coin that the user wants to receive.
         coin_out: Coin,
+        /// If specified, is the only counterparty accepted in the deal.
         counterparty: Option<String>,
-        // Duration in blocks for the deal.
+        /// Duration in blocks for the deal.
         timeout: u64,
     },
+    /// Allows to accept a deal.
     AcceptDeal {
-        // Address of the deal creator.
+        /// Address of the deal creator.
         creator: String,
-        // Coin that the user wants to exchange for.
+        /// Coin that the user wants to exchange for.
         deal_id: u64,
     },
+    /// Allows to withdraw tokens associated with a deal.
     Withdraw {
-        // Address of the deal creator.
+        /// Address of the deal creator.
         creator: String,
-        // Coin that the user wants to exchange for.
+        /// Coin that the user wants to exchange for.
         deal_id: u64,
     },
 }

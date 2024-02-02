@@ -18,12 +18,18 @@ pub struct InstantiateMsg {
 pub enum ExecuteMsg {
     /// Allows to update the contract's configuration. Only owner can update.
     UpdateConfig {
+        /// New contract owner.
         new_owner: Option<String>,
+        /// New fee collector address.
         new_fee_collector: Option<String>,
     },
+    /// Allows to instantiate a new market contract. The order of the coin is not relevant.
     CreateMarket {
+        /// First coin exchanged in the market.
         first_coin: String,
+        /// Second coins exchanged in the market.
         second_coin: String,
+        /// Fee deducted from each clsoed deal.
         fee: Decimal,
     },
 }
@@ -48,10 +54,12 @@ pub enum QueryMsg {
 
 #[cw_serde]
 pub struct MarketResponse {
+    /// Address of the marekt if exists or empty.
     pub address: String,
 }
 
 #[cw_serde]
 pub struct AllMarketsResponse {
+    /// List all available markets.
     pub markets: Vec<((String, String), String)>,
 }

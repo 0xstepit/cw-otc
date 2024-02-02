@@ -1,7 +1,6 @@
 [package]
 name = "common"
-# TODO: add concrete description
-description = "Package description."
+description = "Collection of types shared in the workspace."
 version = { workspace = true }
 edition = { workspace = true }
 authors =  { workspace = true }

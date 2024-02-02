@@ -35,6 +35,6 @@ pub enum ContractError {
     #[error("The deal ")]
     DealNotMatched {},
 
-    #[error("Creator cannot accept the deal.")]
+    #[error("Creator cannot accept the deal")]
     SenderIsCreator {},
 }

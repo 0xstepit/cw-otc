@@ -93,6 +93,7 @@ pub mod execute {
 
     use super::*;
 
+    /// Crerate a new deal. The deal can be open of specific for one counterparty.
     pub fn create_deal(
         deps: DepsMut,
         env: Env,
@@ -179,6 +180,9 @@ pub mod execute {
             .add_attribute("deal_counterparty", deal.counterparty.unwrap()))
     }
 
+    /// Allows to withdraw tokens asscoiated with a deal. If no one accepted the deal, the creator can
+    /// close it and withdraw coins without deducted fee. If a deal is close, fee are deducted from
+    /// both the parties.
     pub fn withdraw(
         deps: DepsMut,
         info: MessageInfo,
@@ -243,7 +247,7 @@ pub mod execute {
             .add_messages(msgs))
     }
 
-    // Check that only one coin has been sent to the contract.
+    /// Check that only one coin has been sent to the contract.
     pub fn check_only_one_coin(funds: &Vec<Coin>) -> Result<(), ContractError> {
         if funds.len() != 1 {
             return Err(ContractError::FundsError {});
@@ -251,7 +255,7 @@ pub mod execute {
         Ok(())
     }
 
-    // Check that the denom is an allowed coin for the market.
+    /// Check that the denom is an allowed coin for the market.
     pub fn check_allowed_coin(denom: &str, config: &Config) -> Result<(), ContractError> {
         if denom != config.first_coin && denom != config.second_coin {
             return Err(ContractError::CoinNotAllowed {});
@@ -259,7 +263,7 @@ pub mod execute {
         Ok(())
     }
 
-    // Create a bank transfer message to refund the entire amount.
+    /// Create a bank transfer message to refund the entire amount.
     pub fn create_withdraw_msg_not_matched(receiver: Addr, coin: Coin) -> Vec<CosmosMsg> {
         let msg: CosmosMsg = BankMsg::Send {
             to_address: receiver.to_string(),
@@ -269,7 +273,7 @@ pub mod execute {
         vec![msg]
     }
 
-    // Create a bank transfer message to the receiver and a bank transfer message for th fee if any.
+    /// Create a bank transfer message to the receiver and a bank transfer message for th fee if any.
     pub fn create_withdraw_msg_matched(
         receiver: Addr,
         withdraw_coin: Coin,
@@ -315,7 +319,7 @@ pub mod query {
         CONFIG.load(deps.storage)
     }
 
-    // Return the active deal associated with a creator.
+    /// Returns the active deals associated with a creator.
     pub fn get_deals_by_creator(
         deps: Deps,
         env: Env,
@@ -339,7 +343,7 @@ pub mod query {
         Ok(DealsByCreatorResponse { deals })
     }
 
-    // Return all active deals.
+    /// Returns all active deals.
     pub fn get_all_deals(deps: Deps, env: Env) -> StdResult<AllDealsResponse> {
         let deals = DEALS
             .range(deps.storage, None, None, Order::Ascending)
