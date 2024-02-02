@@ -108,6 +108,9 @@ just schema
 
 ## Considerations
 
+Below a couple of considerations to improve the project but that were outside of the proposed track for the
+excercise.
+
 - A better way to handling the owner update should be implemented.
 
 - The withdraw part can be automatic without requiring users to withdraw when a deal is closed.
