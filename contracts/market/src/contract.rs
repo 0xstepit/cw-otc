@@ -1,5 +1,5 @@
 use cosmwasm_std::{
-    coin, ensure, entry_point, to_json_binary, Binary, Decimal, Deps, DepsMut, Env, MessageInfo,
+    coin, entry_point, to_json_binary, Binary, Decimal, Deps, DepsMut, Env, MessageInfo,
     Response, StdResult,
 };
 
@@ -88,7 +88,7 @@ pub mod execute {
     use std::ops::Add;
 
     use common::market::{Deal, DealStatus, WithdrawStatus};
-    use cosmwasm_std::{coins, Addr, BankMsg, Coin, CosmosMsg, Uint128};
+    use cosmwasm_std::{Addr, BankMsg, Coin, CosmosMsg, Uint128};
 
     use crate::state::{next_id, DEALS};
 
@@ -155,10 +155,10 @@ pub mod execute {
         }
 
         // Check if sent coins are the same of the selected deal.
-        if &deal.coin_out != &info.funds[0] {
+        if deal.coin_out != info.funds[0] {
             return Err(ContractError::WrongCoin {
                 denom: deal.coin_out.denom.clone(),
-                amount: deal.coin_out.amount.clone(),
+                amount: deal.coin_out.amount,
             });
         }
 
@@ -373,19 +373,15 @@ pub mod query {
 // -------------------------------------------------------------------------------------------------
 #[cfg(test)]
 mod tests {
-    use std::ops::Add;
 
     use cosmwasm_std::{
         testing::{mock_dependencies, mock_env, mock_info},
-        Addr, StdError,
+        Addr,
     };
 
     use crate::msg::InstantiateMsg;
-    use execute;
 
     use super::*;
-
-    const OWNER: &str = "0xstepit000";
 
     #[test]
     fn instatiate_native_works() {
