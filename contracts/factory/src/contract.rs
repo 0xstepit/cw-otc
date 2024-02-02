@@ -1,20 +1,24 @@
 use cosmwasm_std::{
-    ensure, entry_point, to_json_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response,
-    StdResult,
+    ensure, entry_point, to_json_binary, Binary, Deps, DepsMut, Env, MessageInfo, Reply, Response,
+    StdError, StdResult,
 };
 
 use crate::{
     error::ContractError,
     msg::{ExecuteMsg, InstantiateMsg, QueryMsg},
-    state::CONFIG,
+    state::{CONFIG, MARKETS},
 };
 
 use common::factory::Config;
+use common::market::InstantiateMsg as MarketInstantiateMsg;
 
 const CONTRACT_NAME: &str = "crates.io/cw-otc-factory";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
-#[entry_point]
+/// ID of the reply call expected from the market creation.
+const INSTANTIATE_MARKET_REPLY_ID: u64 = 1;
+
+#[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
     deps: DepsMut,
     _env: Env,
@@ -34,6 +38,7 @@ pub fn instantiate(
         deps.storage,
         &Config {
             owner,
+            market_code_id: msg.market_code_id,
             fee_collector,
         },
     )?;
@@ -41,7 +46,7 @@ pub fn instantiate(
     Ok(Response::new())
 }
 
-#[entry_point]
+#[cfg_attr(not(feature = "library"), entry_point)]
 pub fn execute(
     deps: DepsMut,
     env: Env,
@@ -54,11 +59,15 @@ pub fn execute(
             new_owner,
             new_fee_collector,
         } => execute::update_config(deps, env, &info.sender, new_owner, new_fee_collector),
-        CreateMarket {} => execute::create_market(deps, &info.sender),
+        CreateMarket {
+            first_coin,
+            second_coin,
+            fee,
+        } => execute::create_market(deps, &info.sender, first_coin, second_coin, fee),
     }
 }
 
-#[entry_point]
+#[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     use QueryMsg::*;
     match msg {
@@ -67,8 +76,39 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     }
 }
 
+#[cfg_attr(not(feature = "library"), entry_point)]
+pub fn reply(deps: DepsMut, _env: Env, msg: Reply) -> Result<Response, ContractError> {
+    let msg_id = msg.id;
+    let res = cw_utils::parse_reply_instantiate_data(msg).map_err(|_| {
+        StdError::parse_err("MsgInstantiateContractResponse", "failed to parse data")
+    })?;
+    match msg_id {
+        INSTANTIATE_MARKET_REPLY_ID => reply::handle_instantiate_reply(deps, res),
+        _ => Err(ContractError::UnknownReply {}),
+    }
+}
+
+pub mod reply {
+    use cw_utils::MsgInstantiateContractResponse;
+
+    use crate::state::TMP_MARKET_KEY;
+
+    use super::*;
+
+    pub fn handle_instantiate_reply(
+        deps: DepsMut,
+        res: MsgInstantiateContractResponse,
+    ) -> Result<Response, ContractError> {
+        let market_key = TMP_MARKET_KEY.load(deps.storage)?;
+        MARKETS.save(deps.storage, market_key, &res.contract_address)?;
+        Ok(Response::new())
+    }
+}
+
 pub mod execute {
-    use cosmwasm_std::{Addr, Attribute};
+    use cosmwasm_std::{Addr, Attribute, Decimal, ReplyOn, SubMsg, WasmMsg};
+
+    use crate::state::TMP_MARKET_KEY;
 
     use super::*;
 
@@ -101,20 +141,76 @@ pub mod execute {
             .add_attributes(attributes))
     }
 
-    pub fn create_market(_deps: DepsMut, _sender: &Addr) -> Result<Response, ContractError> {
-        unimplemented!()
+    pub fn create_market(
+        deps: DepsMut,
+        sender: &Addr,
+        first_coin: String,
+        second_coin: String,
+        fee: Decimal,
+    ) -> Result<Response, ContractError> {
+        let config = CONFIG.load(deps.storage)?;
+        ensure!(config.owner == sender, ContractError::Unauthorized);
+
+        let ordered_coins = order_strings(first_coin.clone(), second_coin.clone());
+
+        if MARKETS
+            .may_load(deps.storage, ordered_coins.clone())?
+            .is_some()
+        {
+            return Err(ContractError::MarketAlreadyExists {});
+        }
+
+        let sub_msg: Vec<SubMsg> = vec![SubMsg {
+            id: INSTANTIATE_MARKET_REPLY_ID,
+            msg: WasmMsg::Instantiate {
+                admin: Some(config.owner.to_string()),
+                code_id: config.market_code_id,
+                msg: to_json_binary(&MarketInstantiateMsg {
+                    first_coin: first_coin.clone(),
+                    second_coin: second_coin.clone(),
+                    fee,
+                })?,
+                funds: vec![],
+                label: "Astroport pair".to_string(),
+            }
+            .into(),
+            gas_limit: None,
+            reply_on: ReplyOn::Success,
+        }];
+
+        TMP_MARKET_KEY.save(deps.storage, &ordered_coins)?;
+
+        Ok(Response::new().add_submessages(sub_msg))
+    }
+
+    // Helper function used to order two coin denoms.
+    pub fn order_strings(string_one: String, string_two: String) -> (String, String) {
+        if string_one < string_two {
+            (string_one, string_two)
+        } else {
+            (string_two, string_one)
+        }
     }
 }
 
 pub mod query {
+    use cosmwasm_std::Order;
+
+    use crate::msg::MarketsResponse;
+
     use super::*;
 
     pub fn get_config(deps: Deps) -> StdResult<Config> {
         CONFIG.load(deps.storage)
     }
 
-    pub fn get_markets(_deps: Deps) -> StdResult<()> {
-        unimplemented!()
+    pub fn get_markets(deps: Deps) -> StdResult<MarketsResponse> {
+        let all_markets = MARKETS
+            .range(deps.storage, None, None, Order::Ascending)
+            .collect::<StdResult<Vec<((String, String), String)>>>()?;
+        Ok(MarketsResponse {
+            markets: all_markets,
+        })
     }
 }
 
@@ -147,6 +243,7 @@ mod tests {
             info,
             InstantiateMsg {
                 owner: OWNER.to_string(),
+                market_code_id: 0,
                 fee_collector: Some(OWNER.to_string()),
             },
         )
@@ -176,6 +273,7 @@ mod tests {
             info,
             InstantiateMsg {
                 owner: OWNER.to_string(),
+                market_code_id: 0,
                 fee_collector: None,
             },
         )
@@ -198,6 +296,7 @@ mod tests {
         let initial_fee_collector = None;
         let config = Config {
             owner: initial_owner.clone(),
+            market_code_id: 0,
             fee_collector: initial_fee_collector,
         };
 
@@ -257,6 +356,7 @@ mod tests {
         let fee_collector = None;
         let config = Config {
             owner: owner.clone(),
+            market_code_id: 0,
             fee_collector,
         };
 

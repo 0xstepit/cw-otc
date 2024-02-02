@@ -1,6 +1,17 @@
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Addr, Coin, Decimal};
 
+/// This struct contains required variables to instantiate a new market.
+#[cw_serde]
+pub struct InstantiateMsg {
+    // First coin exchanged in this market.
+    pub first_coin: String,
+    // Second coin exchanged in this market.
+    pub second_coin: String,
+    // Fee deducted from each exchange in bps.
+    pub fee: Decimal,
+}
+
 /// This struct contains configuration parameters for the market.
 #[cw_serde]
 pub struct Config {

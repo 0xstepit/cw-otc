@@ -5,8 +5,10 @@ use cw_multi_test::{App, BankSudo, Contract, ContractWrapper, Executor, SudoMsg}
 
 use crate::{
     error::ContractError,
-    msg::{DealsByCreatorResponse, ExecuteMsg, InstantiateMsg, QueryMsg},
+    msg::{DealsByCreatorResponse, ExecuteMsg, QueryMsg},
 };
+
+use common::market::InstantiateMsg;
 
 // Creates a market contract.
 pub fn market_contract() -> Box<dyn Contract<Empty>> {

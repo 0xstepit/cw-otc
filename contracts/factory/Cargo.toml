@@ -21,7 +21,9 @@ cw-storage-plus = { workspace = true }
 cw-ownable = { workspace = true }
 cw2 = {workspace = true }
 thiserror = { workspace = true }
+cw-utils = "1.0.1"
+market = { workspace = true, features = ["library"] }
 common      = { path = "../../packages/common" }
 
 [dev-dependencies]
-cw-multi-test = "0.16"
+cw-multi-test = "0.20"

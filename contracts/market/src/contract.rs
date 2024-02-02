@@ -1,17 +1,16 @@
 use cosmwasm_std::{
-    coin, entry_point, to_json_binary, Binary, Decimal, Deps, DepsMut, Env, MessageInfo,
-    Response, StdResult,
+    coin, to_json_binary, Binary, Decimal, Deps, DepsMut, Env, MessageInfo, Response, StdResult,
 };
 
 use crate::{
     error::ContractError,
-    msg::{ExecuteMsg, InstantiateMsg, QueryMsg},
+    msg::{ExecuteMsg, QueryMsg},
     state::CONFIG,
 };
 
 use astroport::asset::validate_native_denom;
 
-use common::market::Config;
+use common::market::{Config, InstantiateMsg};
 
 const CONTRACT_NAME: &str = "crates.io/cw-otc-market";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -19,7 +18,7 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 // Maximum allowed fee is 5%.
 pub const MAX_FEE: Decimal = Decimal::percent(5);
 
-#[entry_point]
+#[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
     deps: DepsMut,
     _env: Env,
@@ -53,7 +52,7 @@ pub fn instantiate(
     Ok(Response::new())
 }
 
-#[entry_point]
+#[cfg_attr(not(feature = "library"), entry_point)]
 pub fn execute(
     deps: DepsMut,
     env: Env,
@@ -72,7 +71,7 @@ pub fn execute(
     }
 }
 
-#[entry_point]
+#[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     use QueryMsg::*;
     match msg {
@@ -145,7 +144,7 @@ pub mod execute {
 
         let creator = Addr::unchecked(creator);
         if info.sender == creator {
-            return Err(ContractError::SenderIsCreator {})
+            return Err(ContractError::SenderIsCreator {});
         }
         let mut deal = DEALS.load(deps.storage, (&creator, deal_id))?;
 
@@ -181,13 +180,12 @@ pub mod execute {
     }
 
     pub fn withdraw(
-        deps: DepsMut, 
-        info: MessageInfo, 
-        _env: Env, 
-        creator: String, 
-        deal_id: u64
+        deps: DepsMut,
+        info: MessageInfo,
+        _env: Env,
+        creator: String,
+        deal_id: u64,
     ) -> Result<Response, ContractError> {
-
         let config = CONFIG.load(deps.storage)?;
 
         let creator = Addr::unchecked(creator);
@@ -198,20 +196,17 @@ pub mod execute {
         let is_counterparty = Some(info.sender.clone()) == deal.counterparty;
 
         if !is_counterparty && !is_creator {
-            return Err(ContractError::Unauthorized)
+            return Err(ContractError::Unauthorized);
         }
 
         // Separate the withdraw in two cases for readability
-    
+
         // First consider the case of unmatched deal
         let msgs: Vec<CosmosMsg> = match deal.status {
             DealStatus::NotMatched if is_creator => {
                 deal.status = DealStatus::Matched(WithdrawStatus::Completed);
-                create_withdraw_msg_not_matched(
-                    info.sender,
-                    deal.coin_in.clone(),
-                )
-            },
+                create_withdraw_msg_not_matched(info.sender, deal.coin_in.clone())
+            }
             DealStatus::Matched(WithdrawStatus::NoWithdraw) => {
                 let withdraw_coin = if is_creator {
                     deal.status = DealStatus::Matched(WithdrawStatus::CreatorWithdrawed);
@@ -220,33 +215,21 @@ pub mod execute {
                     deal.status = DealStatus::Matched(WithdrawStatus::CounterpartyWithdrawed);
                     deal.coin_in.clone()
                 };
-                create_withdraw_msg_matched(
-                    info.sender,
-                    withdraw_coin,
-                config,
-            )
-            },
+                create_withdraw_msg_matched(info.sender, withdraw_coin, config)
+            }
             DealStatus::Matched(WithdrawStatus::CreatorWithdrawed) if !is_creator => {
                 deal.status = DealStatus::Matched(WithdrawStatus::Completed);
-                create_withdraw_msg_matched(
-                    info.sender,
-                    deal.coin_in.clone(),
-                    config,
-                )
-            },
+                create_withdraw_msg_matched(info.sender, deal.coin_in.clone(), config)
+            }
             DealStatus::Matched(WithdrawStatus::CounterpartyWithdrawed) if is_creator => {
                 deal.status = DealStatus::Matched(WithdrawStatus::Completed);
-                create_withdraw_msg_matched(
-                    info.sender,
-                    deal.coin_out.clone(),
-                    config,
-                )
+                create_withdraw_msg_matched(info.sender, deal.coin_out.clone(), config)
             }
             _ => vec![],
         };
 
         if msgs.is_empty() {
-            return Err(ContractError::Unauthorized {})
+            return Err(ContractError::Unauthorized {});
         }
 
         if deal.status == DealStatus::matched_and_completed() {
@@ -257,8 +240,7 @@ pub mod execute {
 
         Ok(Response::new()
             .add_attribute("action", "withdraw")
-            .add_messages(msgs)
-        )
+            .add_messages(msgs))
     }
 
     // Check that only one coin has been sent to the contract.
@@ -282,21 +264,27 @@ pub mod execute {
         let msg: CosmosMsg = BankMsg::Send {
             to_address: receiver.to_string(),
             amount: vec![coin],
-        }.into();
+        }
+        .into();
         vec![msg]
     }
 
     // Create a bank transfer message to the receiver and a bank transfer message for th fee if any.
-    pub fn create_withdraw_msg_matched(receiver: Addr, withdraw_coin: Coin, config: Config) -> Vec<CosmosMsg> {
+    pub fn create_withdraw_msg_matched(
+        receiver: Addr,
+        withdraw_coin: Coin,
+        config: Config,
+    ) -> Vec<CosmosMsg> {
         let mut msgs = vec![];
 
-        let fee_amount =  withdraw_coin.amount * config.fee;
+        let fee_amount = withdraw_coin.amount * config.fee;
         let receiver_amount = withdraw_coin.amount - fee_amount;
         msgs.push(
             BankMsg::Send {
                 to_address: receiver.to_string(),
                 amount: vec![coin(receiver_amount.u128(), withdraw_coin.denom.clone())],
-            }.into()
+            }
+            .into(),
         );
 
         if fee_amount != Uint128::zero() {
@@ -304,8 +292,9 @@ pub mod execute {
                 BankMsg::Send {
                     to_address: config.owner.to_string(),
                     amount: vec![coin(fee_amount.u128(), withdraw_coin.denom)],
-                }.into()
-            ); 
+                }
+                .into(),
+            );
         }
         msgs
     }
@@ -379,7 +368,7 @@ mod tests {
         Addr,
     };
 
-    use crate::msg::InstantiateMsg;
+    use common::market::InstantiateMsg;
 
     use super::*;
 

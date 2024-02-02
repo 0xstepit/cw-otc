@@ -3,8 +3,10 @@ use cw_multi_test::{App, BankSudo, Contract, ContractWrapper, Executor, SudoMsg}
 
 use crate::{
     error::ContractError,
-    msg::{AllDealsResponse, DealsByCreatorResponse, ExecuteMsg, InstantiateMsg, QueryMsg},
+    msg::{AllDealsResponse, DealsByCreatorResponse, ExecuteMsg, QueryMsg},
 };
+
+use common::market::InstantiateMsg;
 
 const OWNER: &str = "0xstepit000";
 

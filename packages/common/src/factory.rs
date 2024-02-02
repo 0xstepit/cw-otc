@@ -6,6 +6,8 @@ use cosmwasm_std::Addr;
 pub struct Config {
     // Contract owner
     pub owner: Addr,
+    // Code ID of the market contract.
+    pub market_code_id: u64,
     // Optional address used to collect markets fees.
     pub fee_collector: Option<Addr>,
 }

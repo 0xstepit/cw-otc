@@ -1,10 +1,9 @@
 use cosmwasm_std::{Addr, Coin, Decimal, Empty, Uint128};
 use cw_multi_test::{App, BankSudo, Contract, ContractWrapper, Executor, SudoMsg};
 
-use crate::{
-    error::ContractError,
-    msg::{ExecuteMsg, InstantiateMsg},
-};
+use crate::{error::ContractError, msg::ExecuteMsg};
+
+use common::market::InstantiateMsg;
 
 const OWNER: &str = "0xstepit000";
 

@@ -8,4 +8,10 @@ pub enum ContractError {
 
     #[error("Unauthorized")]
     Unauthorized,
+
+    #[error("Uncknown reply ID")]
+    UnknownReply {},
+
+    #[error("The market for the given coins already exists")]
+    MarketAlreadyExists {},
 }
