@@ -160,7 +160,7 @@ pub mod execute {
                     fee,
                 })?,
                 funds: vec![],
-                label: "Astroport pair".to_string(),
+                label: "Market pair".to_string(),
             }
             .into(),
             gas_limit: None,
@@ -171,7 +171,12 @@ pub mod execute {
         // to easily handle the reply.
         TMP_MARKET_KEY.save(deps.storage, &ordered_coins)?;
 
-        Ok(Response::new().add_submessages(sub_msg))
+        Ok(Response::new()
+            .add_attribute("action", "ceate_market")
+            .add_attribute("first_coin", first_coin)
+            .add_attribute("second_coin", second_coin)
+            .add_submessages(sub_msg)
+        )
     }
 }
 
