@@ -249,7 +249,7 @@ pub mod execute {
     }
 
     /// Check that only one coin has been sent to the contract.
-    pub fn check_only_one_coin(funds: &Vec<Coin>) -> Result<(), ContractError> {
+    pub fn check_only_one_coin(funds: &[Coin]) -> Result<(), ContractError> {
         if funds.len() != 1 {
             return Err(ContractError::FundsError {});
         }
