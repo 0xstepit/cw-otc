@@ -175,8 +175,7 @@ pub mod execute {
             .add_attribute("action", "ceate_market")
             .add_attribute("first_coin", first_coin)
             .add_attribute("second_coin", second_coin)
-            .add_submessages(sub_msg)
-        )
+            .add_submessages(sub_msg))
     }
 }
 
