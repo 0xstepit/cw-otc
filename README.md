@@ -76,8 +76,8 @@ These instructions will help you get a copy of the smart contract up and running
 1. Clone the repository and move into project directory:
 
     ```shell
-    git clone <repository_url>
-    cd <project_directory>
+    git clone https://github.com/0xstepit/cw-otc.git
+    cd cw-otc
     ```
 
 2. Build the smart contract:
